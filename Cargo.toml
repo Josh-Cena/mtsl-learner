@@ -1,0 +1,9 @@
+[package]
+name = "learner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+itertools = "0.14.0"
+# TODO: remove timezones -- https://github.com/pola-rs/polars/issues/25148
+polars = { version = "0.52.0", features = ["lazy", "timezones", "csv"] }
