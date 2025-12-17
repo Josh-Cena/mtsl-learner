@@ -52,11 +52,8 @@ pub fn learn_mtsl2<'a>(
                 if *symb == symb1 || *symb == symb2 {
                     continue;
                 }
-                if interveners.iter().all(|x| {
-                    !x.contains(symb)
-                        || interveners
-                            .contains(&x.difference(&BTreeSet::from([*symb])).cloned().collect())
-                }) {
+                // Require {symb} to be the sole intervener
+                if !interveners.contains(&BTreeSet::from([*symb])) {
                     tier.remove(symb);
                 }
             }

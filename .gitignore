@@ -1,4 +1,3 @@
 /target
 /dictionaries
-/grammars-mtsl
-/grammars-tsl
+/grammars-*

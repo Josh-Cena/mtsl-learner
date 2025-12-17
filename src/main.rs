@@ -1,12 +1,12 @@
 mod heinz_jardine;
 mod mcmullin;
+mod mcmullin_liberal;
 mod my_tsl;
 mod utils;
 
 use heinz_jardine::*;
 use itertools::MultiUnzip;
 use itertools::iproduct;
-use mcmullin::*;
 use my_tsl::*;
 use polars::prelude::*;
 use std::collections::BTreeSet;
@@ -18,6 +18,7 @@ fn main() -> PolarsResult<()> {
     let args: Vec<String> = env::args().collect();
     let path = &args[1];
     let learner_type = &args[2];
+    std::fs::create_dir_all(format!("grammars-{learner_type}"))?;
     let df = get_dict(format!("dictionaries/{path}.dict").as_str())?;
     let input = df.column("pronunciation")?.as_series().unwrap().str()?;
     let mut alphabet_set: BTreeSet<&str> = BTreeSet::new();
@@ -40,7 +41,7 @@ fn main() -> PolarsResult<()> {
             "symbol" => alphabet.clone(),
             "included" => alphabet.iter().map(|x| tier.contains(x)).collect::<Vec<bool>>(),
         )?;
-        CsvWriter::new(File::create(format!("grammars-tsl/{path}-tier.csv"))?)
+        CsvWriter::new(File::create(format!("grammars-{learner_type}/{path}-tier.csv"))?)
             .finish(&mut tier_df)?;
         let grammar_data: (Vec<&str>, Vec<&str>, Vec<bool>) = iproduct!(
             alphabet.iter().chain(std::iter::once(&"START")),
@@ -56,7 +57,13 @@ fn main() -> PolarsResult<()> {
         CsvWriter::new(File::create(format!("grammars-tsl/{path}-grammar.csv"))?)
             .finish(&mut grammar_df)?;
     } else {
-        let grammars = learn_mtsl2(&input, &alphabet);
+        let grammars = if learner_type == "mtsl" {
+            mcmullin::learn_mtsl2(&input, &alphabet)
+        } else if learner_type == "mtsl-liberal" {
+            mcmullin_liberal::learn_mtsl2(&input, &alphabet)
+        } else {
+            panic!("Invalid learner type")
+        };
         let grammar_data: (Vec<u32>, Vec<String>, Vec<u32>, Vec<String>) = grammars
             .iter()
             .map(|(tier, grammar)| {
@@ -76,7 +83,7 @@ fn main() -> PolarsResult<()> {
             "forbidden_size" => grammar_data.2,
             "forbidden" => grammar_data.3,
         )?;
-        CsvWriter::new(File::create(format!("grammars-mtsl/{path}-grammars.csv"))?)
+        CsvWriter::new(File::create(format!("grammars-{learner_type}/{path}-grammars.csv"))?)
             .finish(&mut grammar_df)?;
     }
     Ok(())
